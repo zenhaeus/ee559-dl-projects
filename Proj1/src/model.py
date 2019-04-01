@@ -1,15 +1,14 @@
 import torch
+from torch import nn
 
 class Model(torch.nn.Module):
     """Class to encapsulate the creation, training and performance evaluation of the Model
     """
 
-    def __init__(self, data, mini_batch_size, *layers):
-        """ Initialize model object 
+    def __init__(self, data, mini_batch_size):
+        """ Initialize model object
         """
-        if not layers:
-            super(Model, self).__init__(layers)
-
+        super(Model, self).__init__()
         self.train_input = data[0]
         self.train_target = data[1]
         self.train_classes = data[2]
@@ -17,12 +16,16 @@ class Model(torch.nn.Module):
         self.test_target = data[4]
         self.test_classes = data[5]
         self.mini_batch_size = mini_batch_size
+        self.criterion = nn.MSELoss
+
+    def set_criterion(self, criterion):
+        self.criterion = criterion
 
     def forward(self):
         pass
 
     def train(self):
-        criterion = nn.MSELoss()
+        criterion = self.criterion
         eta = 1e-1
 
         for e in range(25):
