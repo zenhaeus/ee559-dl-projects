@@ -2,6 +2,7 @@
 tags
 *.zip
 *data/
+Proj*/*.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
