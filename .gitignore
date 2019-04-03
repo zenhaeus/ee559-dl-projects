@@ -2,7 +2,6 @@
 tags
 *.zip
 *data/
-Proj*/*.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -76,6 +75,7 @@ docs/_build/
 target/
 
 # Jupyter Notebook
+*.ipynb
 .ipynb_checkpoints
 
 # pyenv
