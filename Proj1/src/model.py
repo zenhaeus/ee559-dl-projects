@@ -17,12 +17,12 @@ class Model(torch.nn.Module):
         """
         super(Model, self).__init__()
         data = generate_pair_sets(args.data_size)
-        self.train_input = Variable(data[0])
-        self.train_target = Variable(data[1])
-        self.train_classes = Variable(data[2])
-        self.test_input = Variable(data[3])
-        self.test_target = Variable(data[4])
-        self.test_classes = Variable(data[5])
+        self.train_input = data[0]
+        self.train_target = data[1]
+        self.train_classes = data[2]
+        self.test_input = data[3]
+        self.test_target = data[4]
+        self.test_classes = data[5]
         self.mini_batch_size = mini_batch_size
         self.epochs = epochs
         self.criterion = nn.CrossEntropyLoss()
@@ -44,6 +44,7 @@ class Model(torch.nn.Module):
 
     def train(self):
         for e in range(1, self.epochs + 1):
+            total_loss = 0
             for b in range(0, self.train_input.size(0), self.mini_batch_size):
                 self.zero_grad()
 
@@ -51,9 +52,10 @@ class Model(torch.nn.Module):
                 target = self.train_target.narrow(0, b, self.mini_batch_size)
                 loss = self.criterion(output, target)
                 loss.backward()
+                total_loss += loss
 
                 self.optimizer.step()
-            print("Epoch: {}\tLoss: {}".format(e, loss))
+            print("Epoch: {}\tLoss: {}".format(e, total_loss))
 
 
     def train_error(self):
@@ -85,7 +87,7 @@ class SimpleModel(Model):
         self.optimizer = optim.SGD(self.parameters(), lr=1e-3, momentum=0.9)
 
     def forward(self, x):
-        x = F.relu(F.avg_pool3d(self.conv1(x), 2))
+        x = F.relu(F.max_pool3d(self.conv1(x), 2))
         x = x.view(-1, 50)
         x = F.relu(self.fc1(x))
         x = F.log_softmax(x, dim=1)
