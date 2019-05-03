@@ -1,3 +1,4 @@
+import sys
 import torch
 
 from torch import optim
@@ -8,19 +9,26 @@ from torch import nn
 from dlc_practical_prologue import *
 from arguments import args
 
+import torch.nn.functional as F
+
 class Model(torch.nn.Module):
     """Class to encapsulate the creation, training and performance evaluation of the Model
     """
 
-    def __init__(self, data_size=args.data_size, epochs=args.num_epochs, mini_batch_size=args.mini_batch_size):
+    def __init__(self, data=None, data_size=args.data_size, epochs=args.num_epochs, mini_batch_size=args.mini_batch_size):
         """ Initialize model object
         """
         super(Model, self).__init__()
-        data = generate_pair_sets(args.data_size)
-        self.train_input = data[0]
+
+        # Normalize inputs
+        if data is None:
+            data = generate_pair_sets(data_size)
+        mu, std = data[0].mean(), data[0].std()
+        self.train_input = data[0].sub(mu).div(std)
+        self.test_input = data[3].sub(mu).div(std)
+
         self.train_target = data[1]
         self.train_classes = data[2]
-        self.test_input = data[3]
         self.test_target = data[4]
         self.test_classes = data[5]
         self.mini_batch_size = mini_batch_size
@@ -33,29 +41,28 @@ class Model(torch.nn.Module):
     def set_optimizer(self, optimizer):
         self.optimizer = optimizer
 
-    def pre_process(self):
-        pass
-
-    def post_process(self):
-        pass
-
     def forward(self):
+        """ Needs to be implemented in child class
+        """
         pass
 
     def train(self):
+        print("Train model: {}".format(self))
+        self.optimizer = optim.SGD(self.parameters(), lr = 1e-1)
         for e in range(1, self.epochs + 1):
             total_loss = 0
             for b in range(0, self.train_input.size(0), self.mini_batch_size):
-                self.zero_grad()
-
                 output = self(self.train_input.narrow(0, b, self.mini_batch_size))
                 target = self.train_target.narrow(0, b, self.mini_batch_size)
                 loss = self.criterion(output, target)
+                self.zero_grad()
                 loss.backward()
-                total_loss += loss
-
                 self.optimizer.step()
-            print("Epoch: {}\tLoss: {}".format(e, total_loss))
+                total_loss += loss.item()
+
+            cur_acc = 100 - self.test_error()
+            cur_acc_train = 100 - self.train_error()
+            self._update_progress(e / self.epochs, cur_acc, cur_acc_train)
 
 
     def train_error(self):
@@ -76,34 +83,58 @@ class Model(torch.nn.Module):
 
         return nb_errors
 
+    def _update_progress(self, progress, val_acc, train_acc):
+        length = 20
+        status = ""
+        try:
+            progress = float(progress)
+        except:
+            progress = 0
+            status = "Error: progress must be numeric\r\n"
+
+        if progress < 0:
+            progress = 0
+            status = "Error: progress must be >= 0\r\n"
+        if progress >= 1:
+            progress = 1
+            status = "Finished\n"
+
+        block = int(round(length * progress))
+        text = "\rPercent: [{0}] {1}% Val Acc: {3:.1f}, Train Acc: {4:.1f} {2}".format(
+            "#" * block + "-" * (length - block),
+            round(progress * 100, 2),
+            status,
+            val_acc,
+            train_acc
+        )
+        sys.stdout.write(text)
+        sys.stdout.flush()
+
+
     def __str__(self):
         return "{0.__class__.__name__}(epochs={0.epochs}, mini_batch_size={0.mini_batch_size})".format(self)
 
-class SimpleModel(Model):
-    def __init__(self):
-        super(SimpleModel, self).__init__(epochs=100)
-        self.conv1 = nn.Conv2d(2, 4, kernel_size=5, stride=1)
-        self.fc1 = nn.Linear(50, 2)
-        self.optimizer = optim.SGD(self.parameters(), lr=1e-3, momentum=0.9)
+class StupidNet1(Model):
+    def __init__(self, nb_hidden):
+        super(StupidNet1, self).__init__()
+
+        self.features = nn.Sequential(
+            nn.Conv2d(2, 32, kernel_size=3),         # 32 x 12 x 12
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=3),  # 32 x 4 x 4
+            nn.Conv2d(32, 64, kernel_size=3),        # 64 x 2 x 2
+            nn.ReLU(inplace=True),
+        )
+        self.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(64 * 2 * 2, nb_hidden),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(nb_hidden, 2),
+        )
 
     def forward(self, x):
-        x = F.relu(F.max_pool3d(self.conv1(x), 2))
-        x = x.view(-1, 50)
-        x = F.relu(self.fc1(x))
-        x = F.log_softmax(x, dim=1)
+        x = self.features(x)
+        x = x.view(-1, 64 * 2 * 2)
+        x = self.classifier(x)
         return x
-
-class BilinearModel(Model):
-    def __init__(self):
-        super(BilinearModel, self).__init__()
-        self.conv = nn.Conv2d(2, 4, kernel_size=2, stride=1)
-        self.bl = nn.Bilinear(36, 36, 2)
-        self.optimizer = optim.SGD(self.parameters(), lr=1e-3, momentum=0.9)
-
-    def forward(self, x):
-        x = F.relu(F.avg_pool3d(self.conv(x), 2))
-        x1 = x[:,0,:,:].view(100, 36)
-        x2 = x[:,1,:,:].view(100, 36)
-        x = F.relu(self.bl(x1, x2))
-        return x
-bm = BilinearModel()
