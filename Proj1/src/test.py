@@ -8,10 +8,10 @@ def main():
     stupidNet = StupidNet1(100)
 
     # Train models
-    stupidNet.train()
+    stupidNet.train_multiple()
 
     # Generate performance metric reports / graphs
-    print("Finished")
+    print("End of main()")
 
 if __name__ == '__main__':
     main()
