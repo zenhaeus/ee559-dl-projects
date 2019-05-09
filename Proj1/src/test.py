@@ -5,10 +5,10 @@ from arguments import args
 
 def main():
     # Initialize models
-    stupidNet = StupidNet1(100)
+    model = FancyNet2()
 
     # Train models
-    stupidNet.train_multiple()
+    model.train_multiple()
 
     # Generate performance metric reports / graphs
     print("End of main()")

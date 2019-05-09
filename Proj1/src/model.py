@@ -43,9 +43,9 @@ class Model(torch.nn.Module, metaclass=abc.ABCMeta):
         self.test_target = data[4]
         self.test_classes = data[5]
 
-    def weight_reset(self):
-        if isinstance(self, nn.Conv2d) or isinstance(self, nn.Linear):
-            self.reset_parameters()
+    def weight_reset(self, module):
+        if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
+            module.reset_parameters()
 
     def count_params(self):
         ps = filter(lambda p: p.requires_grad, self.parameters())
@@ -54,40 +54,60 @@ class Model(torch.nn.Module, metaclass=abc.ABCMeta):
     def set_criterion(self, criterion):
         self.criterion = criterion
 
-    def set_optimizer(self, optimizer):
-        self.optimizer = optimizer
-
     @abc.abstractmethod
     def forward(self):
         """Needs to be implemented in a child class."""
         return
 
-    def train(self):
+    def train(self, i):
         time_start = time.time()
 
         # Initialise new random data and reset weights
         self.data()
-        self.weight_reset()
+        self.apply(self.weight_reset)
 
-        self.optimizer = optim.Adam(self.parameters(), lr=1e-2)
+        optimizer = optim.Adam(self.parameters(), lr=1e-3)
+
+        avg_losses = []
+        accs_val = []
+        accs_train = []
+
         for e in range(1, self.epochs + 1):
-            total_loss = 0
+            sum_loss = 0
             for b in range(0, self.train_input.size(0), self.mini_batch_size):
-                output = self(self.train_input.narrow(
-                    0, b, self.mini_batch_size))
-                target = self.train_target.narrow(0, b, self.mini_batch_size)
 
-                loss = self.criterion(output, target)
-                self.optimizer.zero_grad()
+                loss = self.get_loss(b)
+
+                optimizer.zero_grad()
                 loss.backward()
-                self.optimizer.step()
-                total_loss += loss.item()
+                optimizer.step()
+                sum_loss += loss.item()
 
+            avg_loss = sum_loss / (self.train_input.size(0) / self.mini_batch_size)
             cur_acc_val = 100 - self.test_error()
             cur_acc_train = 100 - self.train_error()
-            self._update_progress(e / self.epochs, cur_acc_val, cur_acc_train)
+            self._update_progress(e / self.epochs, cur_acc_val, cur_acc_train, avg_loss)
+
+            avg_losses.append(avg_loss)
+            accs_val.append(cur_acc_val)
+            accs_train.append(cur_acc_train)
+        """
+        torch.save(
+            torch.tensor(avg_losses),
+            "output/AuxNet2_04_{:02}_avg_losses_200.pt".format(i))
+
+        torch.save(
+            torch.tensor(accs_val),
+            "output/AuxNet2_04_{:02}_accs_val_200.pt".format(i))
+
+        torch.save(
+            torch.tensor(accs_train),
+            "output/AuxNet2_04_{:02}_accs_train_200.pt".format(i))
+        """
+
         self.acc_train.append(cur_acc_train)
         self.acc_val.append(cur_acc_val)
+
         time_end = time.time()
         self.time.append(time_end - time_start)
 
@@ -95,18 +115,18 @@ class Model(torch.nn.Module, metaclass=abc.ABCMeta):
         print("Train {} times".format(n))
         print("Model: {}".format(self))
         print("N params: {}".format(self.count_params()))
-        self.acc_train, self.acc_train = [], []
+        self.acc_train, self.acc_val = [], []
 
         for i in range(n):
-            self.train()
+            self.train(i)
 
-        self.acc_val = torch.tensor(self.acc_val)
-        self.acc_train = torch.tensor(self.acc_train)
-        self.time = torch.tensor(self.time)
+        acc_val = torch.tensor(self.acc_val)
+        acc_train = torch.tensor(self.acc_train)
+        time = torch.tensor(self.time)
 
-        mean_val, std_val = self.acc_val.mean(), self.acc_val.std()
-        mean_train, std_train = self.acc_train.mean(), self.acc_train.std()
-        mean_time, std_time = self.acc_train.mean(), self.acc_train.std()
+        mean_val, std_val = acc_val.mean(), acc_val.std()
+        mean_train, std_train = acc_train.mean(), acc_train.std()
+        mean_time, std_time = time.mean(), time.std()
         print(
             "Training complete\nVal Acc:   mean = {:3.1f}%, std = {:2.2f}%\n"
             "Train Acc: mean = {:3.1f}%, std = {:2.2f}%\n"
@@ -128,15 +148,15 @@ class Model(torch.nn.Module, metaclass=abc.ABCMeta):
         nb_errors = 0
 
         for b in range(0, input.size(0), self.mini_batch_size):
-            output = self(input.narrow(0, b, self.mini_batch_size))
-            _, predicted_targets = torch.max(output, 1)
+            out = self.get_main_out(b, input)
+            _, predicted_targets = torch.max(out, 1)
             for k in range(self.mini_batch_size):
                 if predicted_targets[k] != target[b + k]:
                     nb_errors = nb_errors + 1
 
         return nb_errors
 
-    def _update_progress(self, progress, acc_val, acc_train):
+    def _update_progress(self, progress, acc_val, acc_train, avg_loss):
         length = 20
         status = ""
         try:
@@ -150,22 +170,22 @@ class Model(torch.nn.Module, metaclass=abc.ABCMeta):
             status = "Error: progress must be >= 0\r\n"
         if progress >= 1:
             progress = 1
-            status = "Finished\n"
+            status = "Fin\n"
 
         block = int(round(length * progress))
         text = \
-            "\rPercent: [{0}] {1:3.0f}% Val Acc:{3:5.1f}%, " \
-            "Train Acc:{4:5.1f}% {2}".format(
+            "\rPercent: [{0}] {1:3.0f}% VAcc:{3:5.1f}%, " \
+            "TAcc:{4:5.1f}% TL:{5:5.2f} {2}".format(
                 "#" * block + "-" * (length - block),
                 round(progress * 100, 2),
-                status, acc_val, acc_train
+                status, acc_val, acc_train, avg_loss
             )
         sys.stdout.write(text)
         sys.stdout.flush()
 
     def __str__(self):
         return "{0.__class__.__name__}(epochs={0.epochs}, " \
-               "mini_batch_size={0.mini_batch_size})".format(self)
+               "mini_batch_size={0.mini_batch_size}".format(self)
 
 
 class StupidNet1(Model):
@@ -180,10 +200,10 @@ class StupidNet1(Model):
             nn.ReLU(inplace=True),
         )
         self.classifier = nn.Sequential(
-            nn.Dropout(),
+            #nn.Dropout(),
             nn.Linear(64 * 2 * 2, nb_hidden),
             nn.ReLU(inplace=True),
-            nn.Dropout(),
+            #nn.Dropout(),
             nn.Linear(nb_hidden, 2),
         )
 
@@ -192,3 +212,87 @@ class StupidNet1(Model):
         x = x.view(-1, 64 * 2 * 2)
         x = self.classifier(x)
         return x
+
+    def get_main_out(self, b, input):
+        return self(input.narrow(0, b, self.mini_batch_size))
+
+    def get_loss(self, b):
+        out = self(self.train_input.narrow(0, b, self.mini_batch_size))
+        loss = self.criterion(out, self.train_target.narrow(0, b, self.mini_batch_size))
+        return loss
+
+
+class FancyNet2(Model):
+    def __init__(self):
+        super(FancyNet2, self).__init__()
+        self.n_chns_1 = 16
+        self.n_chns_2 = 32
+        self.n_chns_3 = 64
+        self.n_hid = 128
+
+        # CNN for feature extraction
+        self.features = nn.Sequential(
+            nn.Conv2d(1, self.n_chns_1, kernel_size=3),          # 32 x 12 x 12
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),               # 32 x 6 x 6
+
+            nn.Conv2d(self.n_chns_1, self.n_chns_2, kernel_size=3, padding=1),   # 64 x 6 x 6
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),                     # 64 x 3 x 3
+
+            nn.Conv2d(self.n_chns_2, self.n_chns_3, kernel_size=2, padding=1),  # 128 x 3 x 3
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=3),                    # 128 x 1 x 1
+        )
+
+        # FC layers for digit classification
+        self.classifier_number = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(self.n_chns_3, self.n_hid),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(self.n_hid, 10),
+        )
+
+        # FC layers for final decision
+        self.classifier_final = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(self.n_chns_3 * 2, self.n_hid),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(self.n_hid, 2),
+        )
+
+    def forward(self, x):
+        # Channel 0 digit feature extractin
+        x_1 = self.features(x[:, :1, :, :])
+        x_1 = x_1.view(-1, self.n_chns_3)
+
+        # Channel 1 digit feature extractin
+        x_2 = self.features(x[:, :1, :, :])
+        x_2 = x_2.view(-1, self.n_chns_3)
+
+        x_f = torch.cat((x_1, x_2), 1)
+
+        out_1 = self.classifier_number(x_1)
+        out_2 = self.classifier_number(x_2)
+        out_f = self.classifier_final(x_f)
+
+        return out_1, out_2, out_f
+
+    def get_main_out(self, b, input):
+        _, _, out_f = self(input.narrow(
+            0, b, self.mini_batch_size))
+        return out_f
+
+    def get_loss(self, b):
+        out_1, out_2, out_f = self(self.train_input.narrow(
+            0, b, self.mini_batch_size))
+        target = self.train_target.narrow(0, b, self.mini_batch_size)
+        classes = self.train_classes.narrow(0, b, self.mini_batch_size)
+
+        loss_1 = self.criterion(out_1, classes[:, 0])
+        loss_2 = self.criterion(out_2, classes[:, 1])
+        loss_f = self.criterion(out_f, target)
+        loss = loss_1 + loss_2 + loss_f
+        return loss
