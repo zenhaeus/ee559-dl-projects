@@ -33,7 +33,6 @@ class Linear(Module):
             self.bias_grad = None
 
     def forward(self, input):
-        print(self.x)
         assert self.x is None   # raise error if x has been defined before
         self.x = input
         self.s = self.weight.mv(self.x)
@@ -55,23 +54,38 @@ class Linear(Module):
 
 class ReLU(Module):
 
-    def forward(self, *input):
-        return []
+    def __init__(self):
+        self.x = None
 
-    def backward(self, *gradwrtoutput):
-        return[]
+    def forward(self, input):
+        self.x = input
+        assert self.x is None   # raise error if x has been defined before
+        return torch.max(self.x, torch.zeros(self.x.shape)), 0)
+
+    def backward(self, gradwrtoutput):
+        gradwrtinput = (self.x > 0).float().mul(gradwrtoutput)
+        self.x = None
+        return gradwrtinput
 
     def param(self):
         return[]
 
+##########################################################
 
 class Tanh(Module):
 
-    def forward(self, *input):
-        return []
+    def __init__(self):
+        self.x = None
 
-    def backward(self, *gradwrtoutput):
-        return[]
+    def forward(self, input):
+        self.x = input
+        assert self.x is None   # raise error if x has been defined before
+        return torch.tanh(x)    # should we use the mathematical definition of tanh(x)?
+
+    def backward(self, gradwrtoutput):
+        gradwrtinput = (1 - self.x.tanh().pow(2)).mul(gradwrtoutput)
+        self.x = None
+        return gradwrtinput
 
     def param(self):
         return[]
@@ -85,6 +99,31 @@ class Sequential(Module):
 
     def backward(self, *gradwrtoutput):
         return[]
+
+    def param(self):
+        return[]
+
+
+##########################################################
+
+class LossMSE(Module):
+
+    def __init__(self):
+        self.x = None
+        self.target = None
+
+    def forward(self, input, target):
+        self.x = input
+        self.target = target
+        assert self.x is None   # raise error if x has been defined before
+        return (self.target - self.x).pow(2).sum().div(self.x.shape[0])
+
+    def backward(self, gradwrtoutput):
+        # does it make sense to have an input argument "gradwrtoutput"?
+        gradwrtinput = - (self.target - self.x).div(self.x.shape[0])
+        self.x = None
+        self.target = None
+        return gradwrtinput
 
     def param(self):
         return[]
