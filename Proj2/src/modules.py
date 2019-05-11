@@ -115,6 +115,9 @@ class LossMSE(Module):
         self.x = None
         self.target = None
 
+    def __call__(self, *args, **kwargs):
+        return self.forward(args[0], args[1])    # not sure if this is the good way to implement it?
+
     def forward(self, input, target):
         assert self.x is None   # raise error if x has been defined before
         self.x = input
