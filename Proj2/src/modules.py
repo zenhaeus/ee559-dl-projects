@@ -3,6 +3,9 @@ import math
 
 class Module(object):
 
+    def __call__(self, *args, **kwargs):
+        return self.forward(args[0])    # not sure if this is the good way to implement it?
+ 
     def forward (self, *input):
         raise NotImplementedError
 
@@ -58,9 +61,9 @@ class ReLU(Module):
         self.x = None
 
     def forward(self, input):
-        self.x = input
         assert self.x is None   # raise error if x has been defined before
-        return torch.max(self.x, torch.zeros(self.x.shape)), 0)
+        self.x = input
+        return torch.max(self.x, torch.zeros(self.x.shape))
 
     def backward(self, gradwrtoutput):
         gradwrtinput = (self.x > 0).float().mul(gradwrtoutput)
@@ -78,8 +81,8 @@ class Tanh(Module):
         self.x = None
 
     def forward(self, input):
-        self.x = input
         assert self.x is None   # raise error if x has been defined before
+        self.x = input
         return torch.tanh(x)    # should we use the mathematical definition of tanh(x)?
 
     def backward(self, gradwrtoutput):
@@ -113,9 +116,9 @@ class LossMSE(Module):
         self.target = None
 
     def forward(self, input, target):
+        assert self.x is None   # raise error if x has been defined before
         self.x = input
         self.target = target
-        assert self.x is None   # raise error if x has been defined before
         return (self.target - self.x).pow(2).sum().div(self.x.shape[0])
 
     def backward(self, gradwrtoutput):
