@@ -26,10 +26,12 @@ class Linear(Module):
         # initialization
         epsilon = 1e-6
         self.weight = torch.empty(nb_out, nb_in).normal_(0, epsilon)
+        self.weight.fill_(epsilon)
         self.weight_grad = torch.empty(nb_out, nb_in).zero_()
 
         if bias:
             self.bias = torch.empty(nb_out).normal_(0, epsilon)
+            self.bias.fill_(epsilon)
             self.bias_grad = torch.empty(nb_out).zero_()
         else:
             self.bias = None
@@ -122,11 +124,11 @@ class LossMSE(Module):
         assert self.x is None   # raise error if x has been defined before
         self.x = input
         self.target = target
-        return (self.target - self.x).pow(2).sum().div(self.x.shape[0])
+        return (self.x - self.target).pow(2).sum().div(self.x.shape[0])
 
-    def backward(self, gradwrtoutput):
-        # does it make sense to have an input argument "gradwrtoutput"?
-        gradwrtinput = - (self.target - self.x).div(self.x.shape[0])
+    def backward(self):
+        # do we need an argument "gradwrtoutput"?
+        gradwrtinput = 2*(self.x - self.target).div(self.x.shape[0])
         self.x = None
         self.target = None
         return gradwrtinput

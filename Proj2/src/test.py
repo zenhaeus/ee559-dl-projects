@@ -45,7 +45,6 @@ fc2 = modules.Linear(128, 2)
 relu = modules.ReLU()
 lossMSE = modules.LossMSE()
 
-
 def forward_pass(input):
     x = fc1(input)
     x = relu(x)
@@ -53,22 +52,29 @@ def forward_pass(input):
     return x
 
 def backward_pass():
-    grad = lossMSE.backward(1)
+    grad = lossMSE.backward()
     grad = fc2.backward(grad)
     grad = relu.backward(grad)
     grad = fc1.backward(grad)
 
-epochs = 25
-eta = 0.0001
+nb_epochs = 10
+lr = 1e-4
 
-# train
-for e in range(0, epochs):    
+# train with self written autograd
+print('Self written autograd  -------')
+for e in range(0, nb_epochs):    
     sum_loss = 0
 
     for k in range(0, train_input.size(0)):
         # forward pass
         output = forward_pass(train_input[k])
         loss = lossMSE(output, train_target_onehot[k])
+
+        # set gradients to zero
+        fc1.weight_grad.zero_()
+        fc1.bias_grad.zero_()
+        fc2.weight_grad.zero_()
+        fc2.bias_grad.zero_()
 
         # backward pass
         backward_pass()
@@ -78,10 +84,10 @@ for e in range(0, epochs):
         #    p =- eta * p_grad
         #for p, p_grad in fc2.param():
         #    p =- eta * p_grad
-        fc1.weight -= eta * fc1.weight_grad
-        fc1.bias -= eta * fc1.bias_grad
-        fc2.weight -= eta * fc2.weight_grad
-        fc2.bias -= eta * fc2.bias_grad
+        fc1.weight -= lr * fc1.weight_grad
+        fc1.bias -= lr * fc1.bias_grad
+        fc2.weight -= lr * fc2.weight_grad
+        fc2.bias -= lr * fc2.bias_grad
 
         sum_loss += loss.item()
 
@@ -89,5 +95,46 @@ for e in range(0, epochs):
 
 
 
+# check with normal PyTorch
+from torch import nn
+from torch import optim
+torch.set_grad_enabled(True)
+
+mini_batch_size = 1
+
+def create_shallow_model():
+    return nn.Sequential(
+        nn.Linear(2, 128),
+        nn.ReLU(),
+        nn.Linear(128, 2)
+    )
+
+def train_model(model, train_input, train_target):
+    criterion = nn.MSELoss()
+    optimizer = optim.SGD(model.parameters(), lr)
+
+    for e in range(nb_epochs):
+        sum_loss = 0
+
+        for b in range(0, train_input.size(0), mini_batch_size):
+            output = model(train_input.narrow(0, b, mini_batch_size))
+            loss = criterion(output, train_target.narrow(0, b, mini_batch_size))
+            model.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            sum_loss += loss.item()
+
+        print('epoch: ', e, 'loss:', sum_loss)
 
 
+print('PyTorch autograd ------- ')
+model = create_shallow_model()
+
+# make sure PyTorch model is also initialized with normal distribution
+with torch.no_grad():
+    for p in model.parameters(): 
+        #p.normal_(0, 1e-6)
+        p.fill_(1e-6)
+
+train_model(model, train_input, train_target_onehot)
