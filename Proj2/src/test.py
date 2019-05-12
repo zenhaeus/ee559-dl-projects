@@ -45,17 +45,21 @@ fc2 = modules.Linear(128, 2)
 relu = modules.ReLU()
 lossMSE = modules.LossMSE()
 
+# test sequential module
+seq = modules.Sequential(fc1, relu, fc2)
+
 def forward_pass(input):
-    x = fc1(input)
-    x = relu(x)
-    x = fc2(x)
-    return x
+    #x = fc1(input)
+    #x = relu(x)
+    #x = fc2(x)
+    return seq.forward(input)
 
 def backward_pass():
     grad = lossMSE.backward()
-    grad = fc2.backward(grad)
-    grad = relu.backward(grad)
-    grad = fc1.backward(grad)
+    #grad = fc2.backward(grad)
+    #grad = relu.backward(grad)
+    #grad = fc1.backward(grad)
+    grad = seq.backward(grad)
 
 nb_epochs = 10
 lr = 1e-4
@@ -80,14 +84,16 @@ for e in range(0, nb_epochs):
         backward_pass()
 
         # gradient descent
+        # make this somehow work with sequential module...
+
         #for p, p_grad in fc1.param():
-        #    p =- eta * p_grad
+        #    p =- lr * p_grad
         #for p, p_grad in fc2.param():
-        #    p =- eta * p_grad
-        fc1.weight -= lr * fc1.weight_grad
-        fc1.bias -= lr * fc1.bias_grad
-        fc2.weight -= lr * fc2.weight_grad
-        fc2.bias -= lr * fc2.bias_grad
+        #    p =- lr * p_grad
+        #fc1.weight -= lr * fc1.weight_grad
+        #fc1.bias -= lr * fc1.bias_grad
+        #fc2.weight -= lr * fc2.weight_grad
+        #fc2.bias -= lr * fc2.bias_grad
 
         sum_loss += loss.item()
 

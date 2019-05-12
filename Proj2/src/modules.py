@@ -21,7 +21,7 @@ class Linear(Module):
 
     def __init__(self, nb_in, nb_out, bias=True):
         self.x = None
-        self.s = None
+        self.s = None   # this does not need to be a class variable?
 
         # initialization
         epsilon = 1e-6
@@ -54,6 +54,44 @@ class Linear(Module):
 
     def param(self):
         return [(self.weight, self.weight_grad), (self.bias, self.bias_grad)]
+
+##########################################################
+
+class Sequential(Module):
+
+    def __init__(self, *args):
+        self.x = None
+
+        self.module_list = []
+        for module in args:
+            self.module_list.append(module)
+
+    def forward(self, input):
+        assert self.x is None   # raise error if x has been defined before
+        self.x = input
+        output = self.x
+
+        # go through all modules and calculate outputs sequentially
+        for module in self.module_list:
+            output = module.forward(output)
+
+        return output
+
+    def backward(self, gradwrtoutput):
+        gradwrtinput = gradwrtoutput
+        # go through all modules in reversed order and backpropagate sequentially
+        for module in reversed(self.module_list):
+            gradwrtinput = module.backward(gradwrtinput)
+        
+        self.x = None
+        return gradwrtinput
+
+    def param(self):
+        param_list = []
+        for module in self.module_list:
+            param_list.append(module.param())
+
+        return param_list
 
 ##########################################################
 
@@ -94,20 +132,6 @@ class Tanh(Module):
 
     def param(self):
         return[]
-
-##########################################################
-
-class Sequential(Module):
-
-    def forward(self, *input):
-        return []
-
-    def backward(self, *gradwrtoutput):
-        return[]
-
-    def param(self):
-        return[]
-
 
 ##########################################################
 
