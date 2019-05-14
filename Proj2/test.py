@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import torch
-import modules
+import mytorch.nn
 import math
 import matplotlib
 matplotlib.use("TKAgg")
@@ -40,13 +40,13 @@ train_target_onehot = torch.empty(train_target.size(0), 2).zero_()
 train_target_onehot.scatter_(1, train_target.view(-1, 1), 1.0).mul(0.9)
 
 # define model
-fc1 = modules.Linear(2, 128)
-fc2 = modules.Linear(128, 2)
-relu = modules.ReLU()
-lossMSE = modules.LossMSE()
+fc1 = mytorch.nn.Linear(2, 128)
+fc2 = mytorch.nn.Linear(128, 2)
+relu = mytorch.nn.ReLU()
+lossMSE = mytorch.nn.LossMSE()
 
 # test sequential module
-seq = modules.Sequential(fc1, relu, fc2)
+seq = mytorch.nn.Sequential(fc1, relu, fc2)
 
 def forward_pass(input):
     #x = fc1(input)
@@ -66,7 +66,7 @@ lr = 1e-4
 
 # train with self written autograd
 print('Self written autograd  -------')
-for e in range(0, nb_epochs):    
+for e in range(0, nb_epochs):
     sum_loss = 0
 
     for k in range(0, train_input.size(0)):
@@ -139,7 +139,7 @@ model = create_shallow_model()
 
 # make sure PyTorch model is also initialized with normal distribution
 with torch.no_grad():
-    for p in model.parameters(): 
+    for p in model.parameters():
         #p.normal_(0, 1e-6)
         p.fill_(1e-6)
 
