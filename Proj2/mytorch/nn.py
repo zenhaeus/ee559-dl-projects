@@ -33,14 +33,10 @@ class Linear(Module):
         # initialization
         epsilon = 1e-6
         self.weight = torch.empty(nb_out, nb_in).normal_(0, epsilon)
-        # FIXME: why are the weights overriden with epsilon below?
-        self.weight.fill_(epsilon)
         self.weight_grad = torch.empty(nb_out, nb_in).zero_()
 
         if bias:
             self.bias = torch.empty(nb_out).normal_(0, epsilon)
-            # FIXME: why are the biases overriden with epsilon below?
-            self.bias.fill_(epsilon)
             self.bias_grad = torch.empty(nb_out).zero_()
         else:
             self.bias = None
