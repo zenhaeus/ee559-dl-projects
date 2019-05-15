@@ -8,8 +8,9 @@ from matplotlib import pyplot as plt
 # generate data set
 def generate_disc_set(nb):
     """ Generate a disc data set """
+    center = torch.Tensor([0.5, 0.5])
     input = torch.Tensor(nb, 2).uniform_(0, 1)
-    target = input.pow(2).sum(1).sub(1 / (2 * math.pi)).sign().div(-2).add(0.5).long()
+    target = input.sub(center).pow(2).sum(1).sub(1 / (2 * math.pi)).sign().div(-2).add(0.5).long()
     return input, target
 
 def normalize_input_data(train_input, test_input):
