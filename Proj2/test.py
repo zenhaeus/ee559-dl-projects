@@ -18,7 +18,7 @@ train_target_onehot = mytorch.data.target_to_onehot(train_target)
 ########################################################
 # Global training parameters
 nb_epochs = 10
-lr = 1e-5
+lr = 1e-2
 mini_batch_size = 1
 
 #########################################################
@@ -62,6 +62,20 @@ def train_mytorch(model, train_input, train_target):
         print('epoch: ', e, 'loss:', sum_loss)
 #    print("Final output:\n{}".format(model(train_input)))
 
+def mytorch_compute_nb_errors(model, data_input, data_target):
+
+    nb_data_errors = 0
+
+    for k in range(data_input.size(0)):
+        output = model(data_input[k])
+        model.backward(output)  # this is only to free the saved input during forward pass
+        predicted_class = torch.argmax(output)
+        if data_target[k] != predicted_class:
+            nb_data_errors = nb_data_errors + 1
+
+    return nb_data_errors
+
+
 # define model using mytorch modules
 mytorch_model = mytorch.nn.Sequential(
         mytorch.nn.Linear(2, 128),
@@ -76,6 +90,9 @@ mytorch_model = mytorch.nn.Sequential(
 mytorch_weight_initialization(mytorch_model)
 
 train_mytorch(mytorch_model, train_input, train_target_onehot)
+mytorch_nb_train_errors = mytorch_compute_nb_errors(mytorch_model, train_input, train_target)
+
+print('mytorch train errors: ', mytorch_nb_train_errors)
 
 #########################################################
 # Classification comparison using PyTorch
@@ -109,6 +126,20 @@ def train_pytorch(model, train_input, train_target):
 
         print('epoch: ', e, 'loss:', sum_loss)
 
+
+def pytorch_compute_nb_errors(model, data_input, data_target):
+
+    nb_data_errors = 0
+
+    for b in range(0, data_input.size(0), mini_batch_size):
+        output = model(data_input.narrow(0, b, mini_batch_size))
+        predicted_classes = torch.argmax(output, 1)
+        for k in range(mini_batch_size):
+            if data_target[b + k] != predicted_classes[k]:
+                nb_data_errors = nb_data_errors + 1
+
+    return nb_data_errors
+
 # define model using pytorch modules
 pytorch_model = nn.Sequential(
         nn.Linear(2, 128),
@@ -120,3 +151,6 @@ pytorch_model = nn.Sequential(
 pytorch_weight_initialization(pytorch_model)
 
 train_pytorch(pytorch_model, train_input, train_target_onehot)
+pytorch_nb_train_errors = pytorch_compute_nb_errors(pytorch_model, train_input, train_target)
+
+print('pytorch train errors: ', pytorch_nb_train_errors)
