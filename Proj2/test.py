@@ -4,46 +4,51 @@ import mytorch.nn
 import mytorch.data
 import mytorch.optim
 
-torch.set_grad_enabled(False)
+########################################################
+# Toy data set
 
-# Create data
+# create data
 train_input, train_target, test_input, test_target = mytorch.data.generate_data_set(1000)
 # create one hot encoding of training target for MSE loss
 train_target_onehot = mytorch.data.target_to_onehot(train_target)
 
 # check data set visually
-#plot_data_set(train_input, train_target)
+#mytorch.data.plot_data_set(train_input, train_target)
 
-
-# define model
-lossMSE = mytorch.nn.LossMSE()
-model = mytorch.nn.Sequential(
-    mytorch.nn.Linear(2, 128),
-    mytorch.nn.Linear(128, 2),
-    mytorch.nn.ReLU()
-)
-
+########################################################
+# Global training parameters
 nb_epochs = 10
-lr = 1e-4
+lr = 1e-5
 
-# train with self written autograd
-def train_mytorch(nb_epochs, model):
-    print('Self written autograd  -------')
+#########################################################
+# Classification using self written mytorch library
+
+# globally disable automatic differentiation of PyTorch
+torch.set_grad_enabled(False)
+
+def mytorch_weight_initialization(model):
+    for p, _ in mytorch_model.param():
+        p.fill_(1e-6)
+
+def train_mytorch(model, train_input, train_target):
+    print('Training of mytorch model  -------')
+
+    criterion = mytorch.nn.LossMSE()
     optimizer = mytorch.optim.SGD(model.param(), lr)
+    
     for e in range(0, nb_epochs):
         sum_loss = 0
 
         for k in range(0, train_input.size(0)):
             # forward pass
             output = model(train_input[k])
-            loss = lossMSE(output, train_target_onehot[k])
+            loss = criterion(output, train_target[k])
 
             # set gradients to zero
-            model.zero_grad()
+            optimizer.zero_grad()
 
             # backward pass
-            model.backward(lossMSE.backward())
-            #backward_pass()
+            model.backward(criterion.backward())
             optimizer.step()
 
             sum_loss += loss.item()
@@ -51,25 +56,36 @@ def train_mytorch(nb_epochs, model):
         print('epoch: ', e, 'loss:', sum_loss)
 #    print("Final output:\n{}".format(model(train_input)))
 
-train_mytorch(nb_epochs, model)
+# define model using mytorch modules
+mytorch_model = mytorch.nn.Sequential(
+        mytorch.nn.Linear(2, 128),
+        mytorch.nn.ReLU(),
+        mytorch.nn.Linear(128, 2)
+        )   
 
-# check with normal PyTorch
+# uniformly initialize all parameters to compare mytorch and pytorch
+mytorch_weight_initialization(mytorch_model)
+
+train_mytorch(mytorch_model, train_input, train_target_onehot)
+
+#########################################################
+# Classification comparison using PyTorch
+
 from torch import nn
 from torch import optim
 torch.set_grad_enabled(True)
 
-mini_batch_size = 1
+def pytorch_weight_initialization(model):
+    with torch.no_grad():
+        for p in model.parameters():
+            p.fill_(1e-6)
 
-def create_shallow_model():
-    return nn.Sequential(
-        nn.Linear(2, 128),
-        nn.ReLU(),
-        nn.Linear(128, 2)
-    )
+def train_pytorch(model, train_input, train_target):
+    print('Training of pytorch model  -------')
 
-def train_model(model, train_input, train_target):
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr)
+    mini_batch_size = 1
 
     for e in range(nb_epochs):
         sum_loss = 0
@@ -85,14 +101,14 @@ def train_model(model, train_input, train_target):
 
         print('epoch: ', e, 'loss:', sum_loss)
 
+# define model using pytorch modules
+pytorch_model = nn.Sequential(
+        nn.Linear(2, 128),
+        nn.ReLU(),
+        nn.Linear(128, 2)
+        )
 
-print('PyTorch autograd ------- ')
-model = create_shallow_model()
+# uniformly initialize all parameters to compare mytorch and pytorch
+pytorch_weight_initialization(pytorch_model)
 
-# make sure PyTorch model is also initialized with normal distribution
-#with torch.no_grad():
-#    for p in model.parameters():
-#        #p.normal_(0, 1e-6)
-#        p.fill_(1e-6)
-
-train_model(model, train_input, train_target_onehot)
+train_pytorch(pytorch_model, train_input, train_target_onehot)
