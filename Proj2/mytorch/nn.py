@@ -15,9 +15,9 @@ class Module:
     def param (self):
         return []
 
+    # TODO: we do not need this function? Should be called in optimizer?
     def zero_grad(self):
         """Zeroes gradients of tensors which are to be optimized."""
-        # TODO: write test
         for param_pair in self.param():
             param_pair[1].zero_()
 
@@ -30,7 +30,7 @@ class Linear(Module):
         self.s = None   # this does not need to be a class variable?
 
         # initialization with calibrated variance normal distribution
-        # See: http://cs231n.github.io/neural-networks-2/
+        # see: http://cs231n.github.io/neural-networks-2/
         epsilon = math.sqrt(2 / (nb_in + nb_out))
         self.weight = torch_empty(nb_out, nb_in).normal_(0, epsilon)
         self.weight_grad = torch_empty(nb_out, nb_in).zero_()

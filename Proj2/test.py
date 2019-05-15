@@ -34,11 +34,11 @@ def train_mytorch(model, train_input, train_target):
     print('Training of mytorch model  -------')
 
     criterion = mytorch.nn.LossMSE()
-    optimizer = mytorch.optim.SGD(model.param(), lr)
+    optimizer = mytorch.optim.SGD(model.param(), lr, momentum = 0.9)
     
     for e in range(0, nb_epochs):
         sum_loss = 0
-
+        
         for k in range(0, train_input.size(0)):
             # forward pass
             output = model(train_input[k])
@@ -46,9 +46,10 @@ def train_mytorch(model, train_input, train_target):
 
             # set gradients to zero
             optimizer.zero_grad()
-
+                
             # backward pass
             model.backward(criterion.backward())
+
             optimizer.step()
 
             sum_loss += loss.item()
@@ -62,6 +63,9 @@ mytorch_model = mytorch.nn.Sequential(
         mytorch.nn.ReLU(),
         mytorch.nn.Linear(128, 2)
         )   
+
+#print(mytorch_model.module_list)
+#print(mytorch_model.param())
 
 # uniformly initialize all parameters to compare mytorch and pytorch
 mytorch_weight_initialization(mytorch_model)
@@ -84,7 +88,7 @@ def train_pytorch(model, train_input, train_target):
     print('Training of pytorch model  -------')
 
     criterion = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(), lr)
+    optimizer = optim.SGD(model.parameters(), lr, momentum=0.9)
     mini_batch_size = 1
 
     for e in range(nb_epochs):
