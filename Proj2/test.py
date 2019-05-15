@@ -1,105 +1,57 @@
 #!/usr/bin/env python
-
 import torch
 import mytorch.nn
-import math
-import matplotlib
-matplotlib.use("TKAgg")
-from matplotlib import pyplot as plt
+import mytorch.data
+import mytorch.optim
 
 torch.set_grad_enabled(False)
 
-# generate data set
-def generate_disc_set(nb):
-    input = torch.Tensor(nb, 2).uniform_(0, 1)
-    target = input.pow(2).sum(1).sub(1 / (2 * math.pi)).sign().div(-2).add(0.5).long()
-    return input, target
-
-def plot_data_set(train_input, train_target): 
-    fig, ax = plt.subplots(1, 1)
-    ax.scatter(train_input[train_target == 0, 0], train_input[train_target == 0, 1], c = 'blue', s = 5)
-    ax.scatter(train_input[train_target == 1, 0], train_input[train_target == 1, 1], c = 'red', s = 5)
-    ax.axis([0, 1, 0, 1])
-    ax.set_aspect('equal', 'box')
-    plt.show()
-
-train_input, train_target = generate_disc_set(1000)
-test_input, test_target = generate_disc_set(1000)
+# Create data
+train_input, train_target, test_input, test_target = mytorch.data.generate_data_set(1000)
+# create one hot encoding of training target for MSE loss
+train_target_onehot = mytorch.data.target_to_onehot(train_target)
 
 # check data set visually
 #plot_data_set(train_input, train_target)
 
 
-mean, std = train_input.mean(), train_input.std()
-
-train_input.sub_(mean).div_(std)
-test_input.sub_(mean).div_(std)
-
-# create one hot encoding for MSE loss
-train_target_onehot = torch.empty(train_target.size(0), 2).zero_()
-train_target_onehot.scatter_(1, train_target.view(-1, 1), 1.0).mul(0.9)
-
 # define model
-fc1 = mytorch.nn.Linear(2, 128)
-fc2 = mytorch.nn.Linear(128, 2)
-relu = mytorch.nn.ReLU()
 lossMSE = mytorch.nn.LossMSE()
-
-# test sequential module
-seq = mytorch.nn.Sequential(fc1, relu, fc2)
-
-def forward_pass(input):
-    #x = fc1(input)
-    #x = relu(x)
-    #x = fc2(x)
-    return seq.forward(input)
-
-def backward_pass():
-    grad = lossMSE.backward()
-    #grad = fc2.backward(grad)
-    #grad = relu.backward(grad)
-    #grad = fc1.backward(grad)
-    grad = seq.backward(grad)
+model = mytorch.nn.Sequential(
+    mytorch.nn.Linear(2, 128),
+    mytorch.nn.Linear(128, 2),
+    mytorch.nn.ReLU()
+)
 
 nb_epochs = 10
 lr = 1e-4
 
 # train with self written autograd
-print('Self written autograd  -------')
-for e in range(0, nb_epochs):
-    sum_loss = 0
+def train_mytorch(nb_epochs, model):
+    print('Self written autograd  -------')
+    optimizer = mytorch.optim.SGD(model.param(), lr)
+    for e in range(0, nb_epochs):
+        sum_loss = 0
 
-    for k in range(0, train_input.size(0)):
-        # forward pass
-        output = forward_pass(train_input[k])
-        loss = lossMSE(output, train_target_onehot[k])
+        for k in range(0, train_input.size(0)):
+            # forward pass
+            output = model(train_input[k])
+            loss = lossMSE(output, train_target_onehot[k])
 
-        # set gradients to zero
-        fc1.weight_grad.zero_()
-        fc1.bias_grad.zero_()
-        fc2.weight_grad.zero_()
-        fc2.bias_grad.zero_()
+            # set gradients to zero
+            model.zero_grad()
 
-        # backward pass
-        backward_pass()
+            # backward pass
+            model.backward(lossMSE.backward())
+            #backward_pass()
+            optimizer.step()
 
-        # gradient descent
-        # make this somehow work with sequential module...
+            sum_loss += loss.item()
 
-        #for p, p_grad in fc1.param():
-        #    p =- lr * p_grad
-        #for p, p_grad in fc2.param():
-        #    p =- lr * p_grad
-        #fc1.weight -= lr * fc1.weight_grad
-        #fc1.bias -= lr * fc1.bias_grad
-        #fc2.weight -= lr * fc2.weight_grad
-        #fc2.bias -= lr * fc2.bias_grad
+        print('epoch: ', e, 'loss:', sum_loss)
+#    print("Final output:\n{}".format(model(train_input)))
 
-        sum_loss += loss.item()
-
-    print('epoch: ', e, 'loss:', sum_loss)
-
-
+train_mytorch(nb_epochs, model)
 
 # check with normal PyTorch
 from torch import nn
@@ -138,9 +90,9 @@ print('PyTorch autograd ------- ')
 model = create_shallow_model()
 
 # make sure PyTorch model is also initialized with normal distribution
-with torch.no_grad():
-    for p in model.parameters():
-        #p.normal_(0, 1e-6)
-        p.fill_(1e-6)
+#with torch.no_grad():
+#    for p in model.parameters():
+#        #p.normal_(0, 1e-6)
+#        p.fill_(1e-6)
 
 train_model(model, train_input, train_target_onehot)

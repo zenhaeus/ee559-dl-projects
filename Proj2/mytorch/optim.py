@@ -11,8 +11,7 @@ class Optimizer:
     def zero_grad(self):
         """Zeroes gradients of tensors which are to be optimized."""
         for param in self.params:
-            for p in param:
-                p[1].zero_()
+            param[1].zero_()
 
 class SGD(Optimizer):
     """Stochastic Gradient Descent Optimizer class."""
@@ -25,5 +24,4 @@ class SGD(Optimizer):
     def step(self):
         """Perform a single optimization step"""
         for param in self.params:
-            for p in param:
-                p[0].add_(-self.lr*p[1])
+            param[0].add_(-self.lr*param[1])
