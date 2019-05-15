@@ -19,6 +19,7 @@ train_target_onehot = mytorch.data.target_to_onehot(train_target)
 # Global training parameters
 nb_epochs = 10
 lr = 1e-5
+mini_batch_size = 1
 
 #########################################################
 # Classification using self written mytorch library
@@ -39,20 +40,24 @@ def train_mytorch(model, train_input, train_target):
     for e in range(0, nb_epochs):
         sum_loss = 0
         
-        for k in range(0, train_input.size(0)):
-            # forward pass
-            output = model(train_input[k])
-            loss = criterion(output, train_target[k])
-
+        # train in minibatches
+        # TODO : if mini_batch_size != 1, results differ from PyTorch implementation
+        for k in range(0, int(train_input.size(0) / mini_batch_size)):
             # set gradients to zero
             optimizer.zero_grad()
-                
-            # backward pass
-            model.backward(criterion.backward())
 
+            for b in range (mini_batch_size):
+                # forward pass
+                output = model(train_input[k+b])
+                loss = criterion(output, train_target[k+b])
+                    
+                # backward pass
+                model.backward(criterion.backward())
+                sum_loss += loss.item()
+
+            # one gradient step per minibatch
             optimizer.step()
 
-            sum_loss += loss.item()
 
         print('epoch: ', e, 'loss:', sum_loss)
 #    print("Final output:\n{}".format(model(train_input)))
@@ -87,9 +92,8 @@ def pytorch_weight_initialization(model):
 def train_pytorch(model, train_input, train_target):
     print('Training of pytorch model  -------')
 
-    criterion = nn.MSELoss()
+    criterion = nn.MSELoss(reduction = "mean")
     optimizer = optim.SGD(model.parameters(), lr, momentum=0.9)
-    mini_batch_size = 1
 
     for e in range(nb_epochs):
         sum_loss = 0
@@ -97,7 +101,7 @@ def train_pytorch(model, train_input, train_target):
         for b in range(0, train_input.size(0), mini_batch_size):
             output = model(train_input.narrow(0, b, mini_batch_size))
             loss = criterion(output, train_target.narrow(0, b, mini_batch_size))
-            model.zero_grad()
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
