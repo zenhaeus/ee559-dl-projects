@@ -138,11 +138,11 @@ class Tanh(Module):
 
 class LossMSE(Module):
 
-    def __init__(self, method='mean'):
+    def __init__(self):
         self.x = None
         self.target = None
-        self.method = method
 
+    # FIXME: why is this here? Already defined in parent class?
     def __call__(self, *args, **kwargs):
         return self.forward(*args)
 
@@ -150,17 +150,12 @@ class LossMSE(Module):
         assert self.x is None   # raise error if x has been defined before
         self.x = input
         self.target = target
-        res = (self.x - self.target).pow(2)
-        if self.method == 'mean': # FIXME: only consider mean?
-            return res.mean()
-        else:
-            return res.sum()
+        res = (self.x - self.target).pow(2).mean()
+        return res
 
     def backward(self):
-        # FIXME: do we need an argument "gradwrtoutput"?
         gradwrtinput = 2*(self.x - self.target)
-        if self.method != 'mean': # FIXME: only consider mean?
-            gradwrtinput = gradwrtinput.div(self.x.shape[0])
+        gradwrtinput = gradwrtinput.div(self.x.shape[0])
 
         self.x = None
         self.target = None
