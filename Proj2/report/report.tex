@@ -1,0 +1,47 @@
+\documentclass[10pt,conference,compsocconf]{IEEEtran}
+
+\usepackage{hyperref}
+\usepackage{graphicx}	% For figure environment
+\usepackage{subcaption}
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage{tikz}
+\usepackage{tikz-qtree}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{amsthm}
+\usepackage{mathrsfs}
+\usepackage{cleveref}
+\usepackage{xcolor}
+\usetikzlibrary{trees,calc,arrows.meta,positioning,decorations.pathreplacing,bending}
+
+
+\begin{document}
+\title{Deep Learning - Miniproject 2}
+
+\author{
+  Olesya Altunina (285467), Mauro Pfister (235440), Joey Zenhaeusern (226652)
+}
+
+\maketitle
+
+\begin{abstract}
+
+\end{abstract}
+
+\section{Introduction}
+
+\section{Framework implementation}
+In order to implement the mini deep-learning framework we chose a structure based on the suggestion provided in the project description. All modules are implemented as classes which inherit from a parent class \texttt{Module}. They need to override the \texttt{forward()} and \texttt{backward()} methods.
+
+To ensure the correctness of our implementations we wrote a series of unit tests which compare the functionalities of our code to the corresponding PyTorch functionalities.
+
+\section{Conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{literature}
+
+% reference to Bishop for Newton's method
+
+\end{document}

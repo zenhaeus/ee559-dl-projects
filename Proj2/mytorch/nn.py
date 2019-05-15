@@ -117,9 +117,6 @@ class ReLU(Module):
         self.x = None
         return gradwrtinput
 
-    def param(self):
-        return[]
-
 ##########################################################
 
 class Tanh(Module):
@@ -136,9 +133,6 @@ class Tanh(Module):
         gradwrtinput = (1 - self.x.tanh().pow(2)).mul(gradwrtoutput)
         self.x = None
         return gradwrtinput
-
-    def param(self):
-        return[]
 
 ##########################################################
 
@@ -171,6 +165,3 @@ class LossMSE(Module):
         self.x = None
         self.target = None
         return gradwrtinput
-
-    def param(self):
-        return[]
