@@ -60,4 +60,10 @@ def plot_data_set(train_input, train_target):
     )
     ax.axis([0, 1, 0, 1])
     ax.set_aspect('equal', 'box')
+    ax.legend(
+        ['class 0', 'class 1'], 
+        loc = 'upper right', 
+        fancybox = False, 
+        framealpha = True
+    )
     plt.show()
