@@ -22,6 +22,7 @@ class SGD(Optimizer):
         super(SGD, self).__init__(params)
         self.lr = lr
         self.momentum = momentum
+        # TODO: what's this?
         self.bla = None
         if (self.momentum != 0):
             self.Vt_prev_buffer = []
@@ -36,7 +37,7 @@ class SGD(Optimizer):
             # momentum is implemented analogously to official PyTorch
             # see: https://pytorch.org/docs/stable/optim.html#torch.optim.SGD
             # note that this differs from Sutskever et. al.
-            if (self.momentum != 0):
+            if (self.momentum != 0 and self.momentum is not None):
                 Vt = self.momentum*self.Vt_prev_buffer[i] +  p_grad
                 self.Vt_prev_buffer[i] = Vt
 

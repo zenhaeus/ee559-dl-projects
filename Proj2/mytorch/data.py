@@ -37,15 +37,6 @@ def target_to_onehot(target):
     res.scatter_(1, target.view(-1, 1), 1.0).mul(0.9)
     return res
 
-def compute_nb_errors(model, data_input, data_target):
-    #output = model(data_input)
-    #return (output != data_target).sum()
-    pass
-
-
-
-
-
 def plot_data_set(train_input, train_target):
     fig, ax = plt.subplots(1, 1)
     ax.scatter(

@@ -15,11 +15,6 @@ class Module:
     def param (self):
         return []
 
-    # TODO: we do not need this function? Should be called in optimizer?
-    def zero_grad(self):
-        """Zeroes gradients of tensors which are to be optimized."""
-        for param_pair in self.param():
-            param_pair[1].zero_()
 
 ##########################################################
 
@@ -141,10 +136,6 @@ class LossMSE(Module):
     def __init__(self):
         self.x = None
         self.target = None
-
-    # FIXME: why is this here? Already defined in parent class?
-    def __call__(self, *args, **kwargs):
-        return self.forward(*args)
 
     def forward(self, input, target):
         assert self.x is None   # raise error if x has been defined before
