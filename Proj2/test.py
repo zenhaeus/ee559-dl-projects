@@ -40,7 +40,7 @@ mytorch_model = mytorch.nn.Sequential(
 )
 
 # Classification using self written mytorch library
-mytorch_trainer = mytorch.train.MyTorchTrainer(mytorch_model, data, uniform_wi=False)
+mytorch_trainer = mytorch.train.MyTorchTrainer(mytorch_model, data, uniform_wi=True)
 
 mytorch_trainer.train(nb_epochs, mini_batch_size)
 mytorch_trainer.print_summary()
@@ -66,7 +66,7 @@ pytorch_model = torch.nn.Sequential(
 )
 
 # Classification comparison using PyTorch
-pytorch_trainer = mytorch.train.PyTorchTrainer(pytorch_model, data, uniform_wi=False)
+pytorch_trainer = mytorch.train.PyTorchTrainer(pytorch_model, data, uniform_wi=True)
 
 pytorch_trainer.train(nb_epochs, mini_batch_size)
 pytorch_trainer.print_summary()

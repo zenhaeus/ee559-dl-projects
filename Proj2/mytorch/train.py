@@ -78,7 +78,7 @@ class MyTorchTrainer(Trainer):
         if not isinstance(model, mytorch.nn.Module):
             raise TypeError
 
-        super(MyTorchTrainer, self).__init__(model, data, optimizer)
+        super(MyTorchTrainer, self).__init__(model, data, optimizer, uniform_wi=uniform_wi)
         if self.criterion is None:
             self.criterion = mytorch.nn.LossMSE()
         if self.optimizer is None:
@@ -140,7 +140,7 @@ class PyTorchTrainer(Trainer):
         if not isinstance(model, torch.nn.Module):
             raise TypeError
 
-        super(PyTorchTrainer, self).__init__(model, data, optimizer)
+        super(PyTorchTrainer, self).__init__(model, data, optimizer, uniform_wi=uniform_wi)
 
     def train(self, nb_epochs, mini_batch_size=None):
         super(PyTorchTrainer, self).train(mini_batch_size)
