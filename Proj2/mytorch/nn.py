@@ -147,7 +147,6 @@ class LossMSE(Module):
         return res
 
     def backward(self):
-        #print(self.x.shape)
         gradwrtinput = 2*(self.x - self.target).div(self.x.shape[1])
 
         self.x = None

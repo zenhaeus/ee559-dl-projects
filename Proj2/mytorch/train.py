@@ -6,7 +6,6 @@ import mytorch.data
 import mytorch.optim
 
 
-
 class Trainer(metaclass=abc.ABCMeta):
     """ Class to facilitate the training and evaluation of models """
 
@@ -112,7 +111,6 @@ class MyTorchTrainer(Trainer):
 
 
             print('epoch: ', e, 'loss:', sum_loss)
-    #    print("Final output:\n{}".format(model(train_input)))
 
     def weight_initialization(self):
         for p, _ in self.model.param():

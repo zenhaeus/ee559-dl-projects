@@ -22,7 +22,7 @@ train_target_onehot = mytorch.data.target_to_onehot(train_target)
 nb_epochs = 25
 lr = 1e-1
 mini_batch_size = 100
-uniform_wi = True
+uniform_wi = False
 
 #########################################################
 
