@@ -42,6 +42,7 @@ mytorch_trainer = mytorch.train.MyTorchTrainer(mytorch_model, data, uniform_wi=u
 
 mytorch_trainer.train(nb_epochs, mini_batch_size)
 mytorch_trainer.print_summary()
+print(mytorch_trainer.summary)
 
 #########################################################
 

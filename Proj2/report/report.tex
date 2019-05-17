@@ -1,5 +1,5 @@
 \documentclass[10pt,conference,compsocconf]{IEEEtran}
-
+\usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{graphicx}	% For figure environment
 \usepackage{subcaption}
@@ -45,7 +45,7 @@ The linear module implements a simple fully connected layer with or without bias
 \end{equation}
 where $n_{in}, n_{out}$ denote the input and output features respectively.\\
 
-If the back propagation is carried out on a batch of samples, the gradients of the weights and the biases are averaged over the whole batch. This is in accordance with the official PyTorch implementation and ensures that the gradient norms do not grow with the batch size. 
+If the back propagation is carried out on a batch of samples, the gradients of the weights and the biases are averaged over the whole batch. This is in accordance with the official PyTorch implementation and ensures that the gradient norms do not grow with the batch size.
 
 \subsection{Sequential module}
 The sequential module takes a chronological list of other modules as input and groups them in one module for convenience. The forward pass sequentially executes the forward passes of the individual modules. The backward pass does the same but in reversed order.
@@ -94,10 +94,34 @@ The network used for classification of the data set consists of two input units,
 
 \section{Performance evaluation}
 % TODO: mention that for 25 epochs there is quite a bit of variation for both models -> might be due to weight initialization
+When training the model we noted that the error and loss values would vary by quite a lot. Figure~\ref{fig:err} and Figure~\ref{fig:err2} depict the test and train error comparison of the same model trained in MyTorch and Pytorch over 25 epochs. We suspect that this variation is due to the random nature of the data (which is newly generated on every run) and the randomness in the weight initialization. Overall our framework performs very similar to the python reference implementation.
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.4\textwidth]{fig/err.pdf}
+  \caption{Test and train error over 25 epochs.}
+  \label{fig:err}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.4\textwidth]{fig/err2.pdf}
+  \caption{MyTorch vs. PyTorch loss over 25 epochs.}
+  \label{fig:err2}
+\end{figure}
+
+In Table~1 we can see the test error results after running the model 10 times. Surprisingly our model manages to achieve a slightly lower test error in the mean as well as slightly lower standard deviation.
+\begin{table}[]
+    \centering
+\begin{tabular}{@{}lllll@{}}
+\toprule
+        & Test error (mean) & Test error (std) \\ \midrule
+MyTorch & 4.0               & 6.5 \%           \\
+PyTorch & 5.3               & 7.9 \%          
+\end{tabular}
+  \caption{Test error results after running model 10 times}
+\end{table}
 % TODO: plot the prediction of the model on the data set -> maybe run 10 times and even show std ?
 
-
-\section{Conclusion}
 
 \bibliographystyle{IEEEtran}
 \bibliography{literature}

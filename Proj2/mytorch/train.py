@@ -22,6 +22,16 @@ class Trainer(metaclass=abc.ABCMeta):
         self.test_target = data[3]
         self.nb_epochs = None
         self.mini_batch_size = None
+        self.sum_loss = 0
+        self.summary = {
+            'Test accuracy' : [],
+            'Test error' : [],
+            'Train accuracy' : [],
+            'Train error' : [],
+            'Epoch' : [],
+            'Loss' : []
+        }
+        self.cur_epoch = 0
         if uniform_wi:
             self.weight_initialization()
 
@@ -31,6 +41,14 @@ class Trainer(metaclass=abc.ABCMeta):
 
         # Convert to one hot for training with MSE
         self.train_target_onehot = mytorch.data.target_to_onehot(self.train_target)
+
+    def append_to_summary(self):
+        self.summary['Test accuracy'].append(100 - self.get_test_err())
+        self.summary['Test error'].append(self.get_test_err())
+        self.summary['Train accuracy'].append(100 - self.get_train_err())
+        self.summary['Train error'].append(self.get_train_err())
+        self.summary['Epoch'].append(self.cur_epoch)
+        self.summary['Loss'].append(self.sum_loss)
 
     def compute_nb_errors(self, data_input, data_target):
         """ Calculates the number of errors between data_input and data_target """
@@ -98,7 +116,8 @@ class MyTorchTrainer(Trainer):
         print('Training of mytorch model  -------')
 
         for e in range(0, nb_epochs):
-            sum_loss = 0
+            self.cur_epoch = e
+            self.sum_loss = 0
 
             for b in range(0, self.train_input.size(0), self.mini_batch_size):
                 output = self.model(self.train_input.narrow(0, b, self.mini_batch_size))
@@ -107,10 +126,11 @@ class MyTorchTrainer(Trainer):
                 self.model.backward(self.criterion.backward())
                 self.optimizer.step()
 
-                sum_loss += loss.item()
+                self.sum_loss += loss.item()
 
 
-            print('epoch: ', e, 'loss:', sum_loss)
+            self.append_to_summary()
+            print('epoch: ', e, 'loss:', self.sum_loss)
 
     def weight_initialization(self):
         for p, _ in self.model.param():
@@ -137,7 +157,8 @@ class PyTorchTrainer(Trainer):
             self.optimizer = torch.optim.SGD(self.model.parameters(), self.lr, self.momentum)
 
         for e in range(nb_epochs):
-            sum_loss = 0
+            self.cur_epoch = e
+            self.sum_loss = 0
 
             for b in range(0, self.train_input.size(0), self.mini_batch_size):
                 output = self.model(self.train_input.narrow(0, b, self.mini_batch_size))
@@ -146,9 +167,10 @@ class PyTorchTrainer(Trainer):
                 loss.backward()
                 self.optimizer.step()
 
-                sum_loss += loss.item()
+                self.sum_loss += loss.item()
 
-            print('epoch: ', e, 'loss:', sum_loss)
+            self.append_to_summary()
+            print('epoch: ', e, 'loss:', self.sum_loss)
 
     def weight_initialization(self):
         with torch.no_grad():

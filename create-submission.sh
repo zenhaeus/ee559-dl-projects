@@ -15,6 +15,7 @@ zip -r Proj_285467_235440_226652.zip Proj1 Proj2 \
     **/__pycache__\* \
     **/.ipynb_checkpoints\* \
     \*.aux \
+    tags \
     \*.blg \
     \*.ipynb \
     \*.out \
