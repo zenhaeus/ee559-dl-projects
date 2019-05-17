@@ -19,8 +19,9 @@ class TestLinear(unittest.TestCase):
     def test_forward(self):
         """ Compare forward pass to pytorch implementation """
         x = torch.rand((10, 100))
-        torch_lin = torch.nn.Linear(100, 10)
-        mytorch_lin = mytorch.nn.Linear(100, 10)
+        n_out = 10
+        torch_lin = torch.nn.Linear(100, n_out)
+        mytorch_lin = mytorch.nn.Linear(100, n_out)
         # reset weights and biases
         rand_weight = torch.rand(torch_lin.weight.size())
         torch_lin.weight = torch.nn.Parameter(rand_weight)
@@ -32,6 +33,7 @@ class TestLinear(unittest.TestCase):
 
         l1, l2 = torch_lin(x), mytorch_lin(x)
         tt.assert_equal(l1, l2)
+        self.assertEqual(l1.shape[1], n_out)
 
     def test_backward(self):
         """ Compare backward pass to pytorch implementation """
