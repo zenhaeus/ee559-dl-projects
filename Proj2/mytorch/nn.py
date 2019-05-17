@@ -48,8 +48,9 @@ class Linear(Module):
 
     def backward(self, gradwrtoutput):
         # gradient needs to be summed along 0-axis for bias, see https://mlxai.github.io/2017/01/10/a-modular-approach-to-implementing-fully-connected-neural-networks.html
-        self.bias_grad += gradwrtoutput.sum(dim=0)
-        self.weight_grad += self.x.t().mm(gradwrtoutput).t()
+        # average gradients over minibatch
+        self.bias_grad += gradwrtoutput.sum(dim=0).div(self.x.shape[0])
+        self.weight_grad += self.x.t().mm(gradwrtoutput).t().div(self.x.shape[0])
         self.x = None
         return gradwrtoutput.mm(self.weight)
 
@@ -146,7 +147,7 @@ class LossMSE(Module):
         return res
 
     def backward(self):
-        gradwrtinput = 2*(self.x - self.target).div(self.x.shape[0])
+        gradwrtinput = 2*(self.x - self.target).div(self.x.shape[1])
 
         self.x = None
         self.target = None
