@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 
 
 def plot_loss_accs(
+    name="AuxNet2",
     path="learning_rates",
     type_={"accs_val", "accs_train", "avg_losses"}
 ):
@@ -14,7 +15,7 @@ def plot_loss_accs(
         "accs_train": "Training Accuracy"
     }
 
-    with open("../output/{}/AuxNet2/params_dict.json".format(path), "r") as f:
+    with open("../output/{}/{}/params_dict.json".format(path, name), "r") as f:
         params_dict = json.load(f)
     print("Params loaded")
     params = params_dict[path]
@@ -22,7 +23,7 @@ def plot_loss_accs(
     few_trains = []
     for i in range(len(params)):
         one_train = []
-        for fname in glob.iglob("../output/{}/AuxNet2/AuxNet2_{:02}*{}*".format(path, i, type_)):
+        for fname in glob.iglob("../output/{}/{}/{}_{:02}*{}*".format(path, name, name, i, type_)):
             one_train.append(torch.load(fname))
         one_train = torch.stack(one_train)
         few_trains.append(one_train)
@@ -47,7 +48,7 @@ def plot_loss_accs(
         plt.title(titles[type_])
         plt.subplots_adjust(bottom=0.14)
 
-    plt.savefig("../output/{}/AuxNet2/{}.pdf".format(path, type_), dpi=300)
+    plt.savefig("../output/{}/{}/{}.pdf".format(path, name, type_), dpi=300)
     plt.close()
 
 
@@ -58,7 +59,7 @@ def plot_best_net_params(name="BasicNet1"):
 
     mean_bests = {"acc_val": [], "acc_train": [], "loss": []}
     std_bests = {"acc_val": [], "acc_train": [], "loss": []}
-    for i in range(len(params_dict["acc_val"])):
+    for i in range(len(params_dict)):
         fname = "../output/net_params/{}/{}_{:02}_bests.json".format(name, name, i)
         with open(fname, "r") as f:
             bests = json.load(f)
@@ -76,13 +77,13 @@ def plot_best_net_params(name="BasicNet1"):
             range(len(mean_bests["acc_val"])),
             key=lambda k: mean_bests["acc_val"][k]
         )
-        print(mean_sorted_inds)
+        #print(mean_sorted_inds)
 
         for key in ["acc_val", "acc_train"]:
             mean_sorted = [mean_bests[key][i] for i in mean_sorted_inds]
             std_sorted = [std_bests[key][i] for i in mean_sorted_inds]
             ax.errorbar(
-                range(len(params_dict["acc_val"])), mean_sorted, std_sorted,
+                range(len(params_dict)), mean_sorted, std_sorted,
                 alpha=0.6, capsize=2, label=labels[key]
             )
         plt.legend()
@@ -91,7 +92,7 @@ def plot_best_net_params(name="BasicNet1"):
         params_values_sorted = [params_values[i] for i in mean_sorted_inds]
         labels = ["{}-{}-{}-{}".format(*v) for v in params_values_sorted]
 
-        ax.set_xticks(range(len(params_dict["acc_val"])))
+        ax.set_xticks(range(len(params_dict)))
         ax.set_xticklabels(labels, rotation=45, fontsize=6)
         plt.setp(ax.xaxis.get_majorticklabels(), ha='right')
         plt.subplots_adjust(bottom=0.17)

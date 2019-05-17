@@ -76,7 +76,7 @@ class Model(torch.nn.Module, metaclass=abc.ABCMeta):
         """Needs to be implemented in a child class."""
         return
 
-    def train_model(self, i):
+    def train_model(self, i, evaluate=True):
         time_start = time.time()
 
         # Initialise new random data and reset weights
@@ -88,6 +88,10 @@ class Model(torch.nn.Module, metaclass=abc.ABCMeta):
         avg_losses = []
         accs_val = []
         accs_train = []
+
+        avg_loss = None
+        cur_acc_val = None
+        cur_acc_train = None
 
         best = {"acc_val": 0, "acc_train": 0, "loss": 10}
 
@@ -103,6 +107,25 @@ class Model(torch.nn.Module, metaclass=abc.ABCMeta):
                 optimizer.step()
                 sum_loss += loss.item()
 
+            if evaluate:
+                self.eval()
+                avg_loss = sum_loss / (self.train_input.size(0) /
+                                       self.batch_size)
+                cur_acc_val = 100 - self.test_error()
+                cur_acc_train = 100 - self.train_error()
+
+                best["acc_val"] = max(best["acc_val"], cur_acc_val)
+                best["acc_train"] = max(best["acc_train"], cur_acc_train)
+                best["loss"] = min(best["loss"], avg_loss)
+
+                avg_losses.append(avg_loss)
+                accs_val.append(cur_acc_val)
+                accs_train.append(cur_acc_train)
+
+                self._update_progress(e / self.epochs, cur_acc_val, cur_acc_train,
+                                      avg_loss)
+
+        if not evaluate:
             self.eval()
             avg_loss = sum_loss / (self.train_input.size(0) /
                                    self.batch_size)
@@ -117,18 +140,20 @@ class Model(torch.nn.Module, metaclass=abc.ABCMeta):
             accs_val.append(cur_acc_val)
             accs_train.append(cur_acc_train)
 
-            self._update_progress(e / self.epochs, cur_acc_val, cur_acc_train,
-                                  avg_loss)
-
         time_end = time.time()
         time_tot = time_end - time_start
 
         return avg_losses, accs_val, accs_train, best, time_tot
 
-    def train_multiple(self, n=5, save=True):
+    def train_multiple(self, n=5, save=True, evaluate=True):
         print("Train {} times".format(n))
         print("Model: {}".format(self))
         print("N params: {}".format(self.count_params()))
+        if not evaluate:
+            print(
+                "Best Accuracies = Last Accuracies\n"
+                "Evaluation at the end of training only\n"
+                "for time saving purposes.")
 
         mean = {"val": 0, "train": 0}
         std = {"val": 0, "train": 0}
@@ -138,7 +163,9 @@ class Model(torch.nn.Module, metaclass=abc.ABCMeta):
         for i in range(n):
             # Train the current model
             avg_losses, accs_val, accs_train, best, time_tot = \
-                self.train_model(i)
+                self.train_model(i, evaluate)
+            if not evaluate:
+                print(i)
 
             for key in bests.keys():
                 bests[key].append(best[key])
@@ -453,6 +480,88 @@ class AuxNet2(Model):
 
 
 class AuxNet3(Model):
+    def __init__(
+            self,
+            n_chns_1=16, n_chns_2=32,
+            n_hid_1=64, n_hid_2=64
+    ):
+        super(AuxNet3, self).__init__()
+        self.n_chns_2 = n_chns_2
+        self.initialize(n_chns_1, n_chns_2, n_hid_1, n_hid_2)
+
+    def initialize(self, n_chns_1=16, n_chns_2=32, n_hid_1=64, n_hid_2=64):
+        self.n_chns_2 = n_chns_2
+        # CNN for feature extraction
+        self.features = nn.Sequential(
+            nn.Conv2d(1, n_chns_1, kernel_size=3),                   # N x 12 x 12
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),                     # N x 6 x 6
+
+            nn.Conv2d(n_chns_1, n_chns_2, kernel_size=3, padding=1),   # M x 6 x 6
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=6, stride=6),                     # M x 3 x 3
+        )
+
+        # FC layers for digit classification
+        self.classifier_number = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(n_chns_2, n_hid_1),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(n_hid_1, n_hid_2),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(n_hid_2, 10),
+        )
+
+        # FC layers for binary classification
+        self.classifier_final = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(n_chns_2 * 2, n_hid_1),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(n_hid_1, n_hid_2),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(n_hid_2, 2),
+        )
+
+    def forward(self, x):
+        # Channel 0 digit feature extraction
+        x_1 = self.features(x[:, :1, :, :])
+        x_1 = x_1.view(-1, self.n_chns_2)
+
+        # Channel 1 digit feature extraction
+        x_2 = self.features(x[:, 1:, :, :])
+        x_2 = x_2.view(-1, self.n_chns_2)
+
+        x_f = torch.cat((x_1, x_2), 1)
+
+        out_1 = self.classifier_number(x_1)
+        out_2 = self.classifier_number(x_2)
+        out_f = self.classifier_final(x_f)
+
+        return out_1, out_2, out_f
+
+    def get_main_out(self, b, input):
+        _, _, out_f = self(input.narrow(
+            0, b, self.batch_size))
+        return out_f
+
+    def get_loss(self, b):
+        out_1, out_2, out_f = self(self.train_input.narrow(
+            0, b, self.batch_size))
+        target = self.train_target.narrow(0, b, self.batch_size)
+        classes = self.train_classes.narrow(0, b, self.batch_size)
+
+        loss_1 = self.criterion(out_1, classes[:, 0])
+        loss_2 = self.criterion(out_2, classes[:, 1])
+        loss_f = self.criterion(out_f, target)
+        loss = loss_1 + loss_2 + loss_f
+        return loss
+
+
+class AuxNet4(Model):
     def __init__(
             self,
             n_chns_1=16, n_chns_2=32, n_chns_3=64, n_chns_4=64,
