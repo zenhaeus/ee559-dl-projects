@@ -28,7 +28,7 @@
 \maketitle
 
 \begin{abstract}
-This report is a description of our approach to implement a simple deep-learning framework from scratch. The framework is then used to build a very basic network and train, as well as evaluate it on a randomly generated dataset.
+This report is a description of our approach to implement a simple deep-learning framework from scratch and particularly without using PyTorch's automatic differentiation. The framework contains all the necessary tools to create, train and evaluate a simple network. The functionality is demonstrated by building a classification network for a randomly generated dataset. 
 \end{abstract}
 
 \section{Introduction}
@@ -36,22 +36,23 @@ This report is a description of our approach to implement a simple deep-learning
 \section{Framework implementation}
 In order to implement our own mini deep-learning framework MyTorch we chose a structure based on the suggestion provided in the project description. All modules are implemented as classes which inherit from a parent class \texttt{Module}. They need to override the \texttt{forward()}, \texttt{backward()} and \texttt{param()} methods.
 
-MyTorch supports batch processing which significantly decreases training times as well as prediction times on large networks. Currently, we do not support multiple forward passes since the inputs are not saved into a buffer. While it is still possible to run several forward passes one should keep in mind that the backward pass will only be with respect to the last applied input.
+MyTorch supports batch processing which significantly decreases training times as well as prediction times on large networks. Currently, we do not support multiple forward passes since the inputs are not saved into a buffer. While it is still possible to run several forward passes one should keep in mind that the backward pass will only calculate the gradients with respect to the last applied input.
 
 \subsection{Linear module}
-% TODO: describe module
-% TODO: mention weight initialization
-% TODO: mention that parameter gradient is averaged over minibatches
+The linear module implements a simple fully connected layer with or without bias. Following the suggestion of Glorot and Bengio \cite{pmlr-v9-glorot10a}, weights and biases are initialized with a normal distribution of zero mean and standard deviation $\sigma$ given by
+\begin{equation} \label{eq:Winit}
+  \sigma = \sqrt{2 / (n_{in} + n_{out})},
+\end{equation}
+where $n_{in}, n_{out}$ denote the input and output features respectively.\\
+
+If the back propagation is carried out on a batch of samples, the gradients of the weights and the biases are averaged over the whole batch. This is in accordance with the official PyTorch implementation and ensures that the gradient norms do not grow with the batch size. 
 
 \subsection{Sequential module}
-% This is quite a lot of bullshitting ... What else could we write here?
 The sequential module takes a chronological list of other modules as input and groups them in one module for convenience. The forward pass sequentially executes the forward passes of the individual modules. The backward pass does the same but in reversed order.
 
-\subsection{ReLU module}
-% TODO: describe module
-
-\subsection{Tanh module}
-% TODO: describe module
+\subsection{ReLU and Tanh module}
+% TODO: what else can we write here?
+Both ReLU and Tanh modules have no parameters.
 
 \subsection{MSE loss module}
 The \texttt{LossMSE} class implements a mean squared error loss function defined as follows:
@@ -73,9 +74,9 @@ Currently, only a stochastic gradient descent optimizer \texttt{SGD} is availabl
 where $\alpha$, $\rho$ and $g$ denote learning rate, momentum and parameter gradient respectively.
 
 \section{Framework validation}
-To ensure the correctness of our implementations we wrote a series of unit tests which compare the functionalities of our code to the corresponding PyTorch functionalities. Currently the forward and backward passes of \texttt{Linear}, \texttt{ReLU} and \texttt{Tanh} modules can be tested \textcolor{red}{ADD MORE}.
+To ensure the correctness of our implementations we wrote a series of unit tests which compare the functionalities of our code to the corresponding PyTorch functionalities. Currently the forward and backward passes of \texttt{Linear}, \texttt{ReLU} and \texttt{Tanh} modules can be tested.
 
-Additionally, we created the same network architecture once in our framework and once in PyTorch and initialized all model parameters to a value of $10^{-6}$. This ensures that both models have exact the same initial condition. During training the total loss per epochs did not differ by more than $10^{-6}$ and the training and test accuracies matched perfectly. Therefore we conclude that within the limitations of our framework, the results should always be close to an equivalent PyTorch implementation.
+Additionally, we created the same network architecture once MyTorch and once in PyTorch and initialized all model parameters to a value of $10^{-6}$. This ensures that both models have exact the same initial condition. Using this initialization the total training loss per epochs does not differ by more than $10^{-6}$ and the training and test accuracies match perfectly. Therefore we conclude that within the limitations of our framework, the functionality is equivalent to PyTorch.
 
 \section{Data description}
 According to the task description the training and test data sets consist each of 1000 points sampled uniformly in $[0,1]^2$. Class 0 is defined by all the points outside the disk with radius $\nicefrac{1}{\sqrt{2\pi}}$ and center $(\nicefrac{1}{2}, \nicefrac{1}{2})$ while class 1 denotes all the points inside that disk (see Figure~\ref{fig:data_set}).
