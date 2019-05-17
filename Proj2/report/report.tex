@@ -39,12 +39,14 @@ In order to implement the mini deep-learning framework we chose a structure base
 To ensure the correctness of our implementations we wrote a series of unit tests which compare the functionalities of our code to the corresponding PyTorch functionalities.
 
 % TODO: describe interesting implementation details
+% TODO: mention that minibatches can be handled properly
 % TODO: clearly state how several consecutive forward passes are handled
 % TODO: state limitations of implementation
 
 \subsection{Linear module}
 % TODO: describe module
 % TODO: mention weight initialization
+% TODO: mention that parameter gradient is averaged over minibatches
 
 \subsection{Sequential module}
 % This is quite a lot of bullshitting ... What else could we write here?
@@ -90,6 +92,9 @@ According to the task description the training and test data sets consist each o
 The network used for classification of the data set consists of two input units, three hidden layers of 25 units and two output units. We chose to use ReLU as activation functions for all layers.
 
 \section{Performance Evaluation}
+% TODO: explain how models were compared to ensure that our implementation was correct -> show that for uniformly initialized weights both models behave exactly the same
+% TODO: mention that for 25 epochs there is quite a bit of variation for both models -> might be due to weight initialization
+
 
 \section{Conclusion}
 
