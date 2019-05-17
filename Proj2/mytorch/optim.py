@@ -22,8 +22,7 @@ class SGD(Optimizer):
         super(SGD, self).__init__(params)
         self.lr = lr
         self.momentum = momentum
-        # TODO: what's this?
-        self.bla = None
+
         if (self.momentum != 0):
             self.Vt_prev_buffer = []
             for _, p_grad in self.params:

@@ -14,7 +14,7 @@ class Trainer(metaclass=abc.ABCMeta):
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
-        self.lr = 1e-2
+        self.lr = 1e-1
         self.momentum = 0.9
 
         self.train_input = data[0]
