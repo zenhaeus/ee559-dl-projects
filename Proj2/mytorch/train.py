@@ -39,7 +39,16 @@ class Trainer(metaclass=abc.ABCMeta):
             print("Error: Can't compute error of untrained network!")
             return -1
         else:
-            return 0
+            nb_data_errors =  0
+
+        for b in range(0, data_input.size(0), self.mini_batch_size):
+            output = self.model(data_input.narrow(0, b, self.mini_batch_size))
+            predicted_classes = torch.argmax(output, 1)
+            for k in range(self.mini_batch_size):
+                if data_target[b + k] != predicted_classes[k]:
+                    nb_data_errors = nb_data_errors + 1
+
+        return nb_data_errors
 
     def get_train_err(self):
         nb_errors = self.compute_nb_errors(self.train_input, self.train_target)
@@ -92,41 +101,18 @@ class MyTorchTrainer(Trainer):
         for e in range(0, nb_epochs):
             sum_loss = 0
 
-            # train in minibatches
-            # TODO : if mini_batch_size != 1, results differ from PyTorch implementation
-            for k in range(0, int(self.train_input.size(0) / self.mini_batch_size)):
-                # set gradients to zero
+            for b in range(0, self.train_input.size(0), self.mini_batch_size):
+                output = self.model(self.train_input.narrow(0, b, self.mini_batch_size))
+                loss = self.criterion(output, self.train_target_onehot.narrow(0, b, self.mini_batch_size))
                 self.optimizer.zero_grad()
-
-                for b in range (self.mini_batch_size):
-                    # forward pass
-                    output = self.model(self.train_input[k+b])
-                    loss = self.criterion(output, self.train_target_onehot[k+b])
-
-                    # backward pass
-                    self.model.backward(self.criterion.backward())
-                    sum_loss += loss.item()
-
-                # one gradient step per minibatch
+                self.model.backward(self.criterion.backward())
                 self.optimizer.step()
+
+                sum_loss += loss.item()
 
 
             print('epoch: ', e, 'loss:', sum_loss)
     #    print("Final output:\n{}".format(model(train_input)))
-
-    def compute_nb_errors(self, data_input, data_target):
-        nb_data_errors = super(MyTorchTrainer, self).compute_nb_errors(data_input, data_target)
-        if nb_data_errors == -1:
-            return -1
-
-        for k in range(data_input.size(0)):
-            output = self.model(data_input[k])
-            self.model.backward(output)  # TODO: this is only to free the saved input during forward pass
-            predicted_class = torch.argmax(output)
-            if data_target[k] != predicted_class:
-                nb_data_errors = nb_data_errors + 1
-
-        return nb_data_errors
 
     def weight_initialization(self):
         for p, _ in self.model.param():
@@ -165,20 +151,6 @@ class PyTorchTrainer(Trainer):
                 sum_loss += loss.item()
 
             print('epoch: ', e, 'loss:', sum_loss)
-
-    def compute_nb_errors(self, data_input, data_target):
-        nb_data_errors = super(PyTorchTrainer, self).compute_nb_errors(data_input, data_target)
-        if nb_data_errors == -1:
-            return -1
-
-        for b in range(0, data_input.size(0), self.mini_batch_size):
-            output = self.model(data_input.narrow(0, b, self.mini_batch_size))
-            predicted_classes = torch.argmax(output, 1)
-            for k in range(self.mini_batch_size):
-                if data_target[b + k] != predicted_classes[k]:
-                    nb_data_errors = nb_data_errors + 1
-
-        return nb_data_errors
 
     def weight_initialization(self):
         with torch.no_grad():

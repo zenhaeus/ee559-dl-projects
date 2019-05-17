@@ -18,7 +18,7 @@ class TestLinear(unittest.TestCase):
 
     def test_forward(self):
         """ Compare forward pass to pytorch implementation """
-        x = random_tensor_1d(100)
+        x = torch.rand((10, 100))
         torch_lin = torch.nn.Linear(100, 10)
         mytorch_lin = mytorch.nn.Linear(100, 10)
         # reset weights and biases
@@ -82,15 +82,15 @@ class TestMSE(unittest.TestCase):
             #        possibly because of double / float precision in calculation
             tt.assert_allclose(l1, l2, rtol=1e-06)
 
-    def test_forward_sum(self):
-        """ Compare forward pass to pytorch implementation """
-        for i in range(100):
-            x = random_tensor_2d(10)
-            y = random_tensor_2d(10)
-            torch_mse = torch.nn.MSELoss(reduction='sum')
-            mytorch_mse = mytorch.nn.LossMSE(method='sum')
-            l1, l2 = torch_mse(x, y), mytorch_mse(x, y)
-            tt.assert_allclose(l1, l2, rtol=1e-06)
+    #def test_forward_sum(self):
+    #    """ Compare forward pass to pytorch implementation """
+    #    for i in range(100):
+    #        x = random_tensor_2d(10)
+    #        y = random_tensor_2d(10)
+    #        torch_mse = torch.nn.MSELoss(reduction='sum')
+    #        mytorch_mse = mytorch.nn.LossMSE(method='sum')
+    #        l1, l2 = torch_mse(x, y), mytorch_mse(x, y)
+    #        tt.assert_allclose(l1, l2, rtol=1e-06)
 
     def test_backward(self):
         """ Compare backward pass to pytorch implementation """
