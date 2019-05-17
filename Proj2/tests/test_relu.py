@@ -37,8 +37,31 @@ class TestLinear(unittest.TestCase):
 
     def test_backward(self):
         """ Compare backward pass to pytorch implementation """
-        pass
+        batch_size = 100
+        n_in = 10
+        n_out = 25
+        x = torch.rand((batch_size, n_in), requires_grad=True)
 
+        torch_lin = torch.nn.Linear(n_in, n_out)
+        mytorch_lin = mytorch.nn.Linear(n_in, n_out)
+
+        # reset weights and biases
+        rand_weight = torch.rand(torch_lin.weight.size())
+        torch_lin.weight = torch.nn.Parameter(rand_weight)
+        mytorch_lin.weight = rand_weight
+
+        rand_bias = torch.rand(torch_lin.bias.size())
+        torch_lin.bias = torch.nn.Parameter(rand_bias)
+        mytorch_lin.bias = rand_bias
+
+        l1 = torch_lin(x)
+        l1.backward(torch.ones_like(l1))
+        gradwrtinput1 = x.grad
+
+        l2 = mytorch_lin(x)
+        gradwrtinput2 = mytorch_lin.backward(torch.ones_like(l2))
+
+        tt.assert_equal(gradwrtinput1, gradwrtinput2)
 
 class TestReLU(unittest.TestCase):
 
@@ -52,7 +75,20 @@ class TestReLU(unittest.TestCase):
 
     def test_backward(self):
         """ Compare backward pass to pytorch implementation """
-        pass
+        x = torch.rand(10, requires_grad=True)
+
+        pytorch_relu = torch.nn.ReLU()
+        mytorch_relu = mytorch.nn.ReLU()
+
+        l1 = pytorch_relu(x)
+
+        l1.backward(torch.ones_like(l1))
+        gradwrtinput1 = x.grad
+
+        l2 = mytorch_relu(x)
+        gradwrtinput2 = mytorch_relu.backward(torch.ones_like(l2))
+
+        tt.assert_equal(gradwrtinput1, gradwrtinput2)
 
 
 class TestTanh(unittest.TestCase):
