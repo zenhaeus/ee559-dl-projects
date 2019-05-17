@@ -11,12 +11,5 @@ $(FILENAME).pdf: $(FILENAME).bbl $(FILENAME).tex
 	pdflatex $(FILENAME).tex -draftmode
 	pdflatex $(FILENAME).tex 
 
-$(FILENAME).bbl: $(FILENAME).aux
-	bibtex $(FILENAME).aux
-
-$(FILENAME).aux: $(REFERENCES).bib
-	pdflatex $(FILENAME).tex -draftmode
-	pdflatex $(FILENAME).tex -draftmode
-
 clean:
 	rm -rf *.aux *.lof *.log *.lot *.toc *.bbl *.blg *pdf
