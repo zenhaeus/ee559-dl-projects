@@ -90,7 +90,6 @@ class TestReLU(unittest.TestCase):
 
         tt.assert_equal(gradwrtinput1, gradwrtinput2)
 
-
 class TestTanh(unittest.TestCase):
 
     def test_forward(self):
@@ -103,7 +102,20 @@ class TestTanh(unittest.TestCase):
 
     def test_backward(self):
         """ Compare backward pass to pytorch implementation """
-        pass
+        x = torch.rand(10, requires_grad=True)
+
+        pytorch_tanh = torch.nn.Tanh()
+        mytorch_tanh = mytorch.nn.Tanh()
+
+        l1 = pytorch_tanh(x)
+
+        l1.backward(torch.ones_like(l1))
+        gradwrtinput1 = x.grad
+
+        l2 = mytorch_tanh(x)
+        gradwrtinput2 = mytorch_tanh.backward(torch.ones_like(l2))
+
+        tt.assert_equal(gradwrtinput1, gradwrtinput2)
 
 
 class TestMSE(unittest.TestCase):
@@ -116,19 +128,7 @@ class TestMSE(unittest.TestCase):
             torch_mse = torch.nn.MSELoss()
             mytorch_mse = mytorch.nn.LossMSE()
             l1, l2 = torch_mse(x, y), mytorch_mse(x, y)
-            # FIXME: test sometimes fails with 1e-07 accuracy
-            #        possibly because of double / float precision in calculation
             tt.assert_allclose(l1, l2, rtol=1e-06)
-
-    #def test_forward_sum(self):
-    #    """ Compare forward pass to pytorch implementation """
-    #    for i in range(100):
-    #        x = random_tensor_2d(10)
-    #        y = random_tensor_2d(10)
-    #        torch_mse = torch.nn.MSELoss(reduction='sum')
-    #        mytorch_mse = mytorch.nn.LossMSE(method='sum')
-    #        l1, l2 = torch_mse(x, y), mytorch_mse(x, y)
-    #        tt.assert_allclose(l1, l2, rtol=1e-06)
 
     def test_backward(self):
         """ Compare backward pass to pytorch implementation """
