@@ -17,8 +17,16 @@ parser.add_argument('--batch_size',
                     help='Size of minibatches for training (default 100)')
 
 parser.add_argument('--learning_rate',
-                    type = int, default = 5e-3,
-                    help = 'Learning rate (default 5e-3)')
+                    type=int, default = 5e-3,
+                    help='Learning rate (default 5e-3)')
+
+parser.add_argument('--train_best',
+                    action='store_true', default=False,
+                    help='Train the best model 10 times')
+
+parser.add_argument('--reproduce_all',
+                    action='store_true', default=False,
+                    help='Reproduce optimization')
 
 # Prologue arguments
 parser.add_argument('--full',
